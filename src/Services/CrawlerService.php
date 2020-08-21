@@ -8,26 +8,74 @@ use Symfony\Component\DomCrawler\Crawler;
 
 class CrawlerService
 {
+    /** @var string */
+    private $baseUrl;
+
     /**
-     * @param string $html
-     * @param string $url
+     * @var ResponseRetrieverService
      */
-    public function crawl(string $html, string $url)
+    private $retrieverService;
+
+    public function __construct(ResponseRetrieverService $retrieverService)
     {
-        $innerUrl = $externalUrl = [];
+        $this->retrieverService = $retrieverService;
+    }
 
-        $crawler = new Crawler($html, $url);
+    public function crawl(string $baseUrl): array
+    {
+        $html = $this->retrieverService->getResponseContent($baseUrl);
 
-        $links = $crawler->filter('a')->links();
+        $links = $this->getLinks($html, $baseUrl);
 
-        foreach ($links as $link) {
-            if (strpos($link->getUri(), $url) === 0) {
-                $innerUrl[] = $link->getUri();
+        foreach ($links as $key => $link) {
+            if ($this->retrieverService->isUrlVisited($link)
+                || strpos($link, $this->baseUrl) !== 0
+            ) {
+                continue;
             }
 
-            $externalUrl[] = $link->getUri();
+            return array_merge($links, array_unique($this->crawl($link)));
         }
 
-        return [$innerUrl, $externalUrl];
+        return $links;
+    }
+
+    private function getLinks(string $html, string $baseUrl): array
+    {
+        $links = [];
+
+        if (isset($this->baseUrl) === false) {
+            $this->baseUrl = $baseUrl;
+        }
+
+        $crawler = new Crawler($html, $baseUrl);
+
+        $crawler_links = $crawler->filter('a')->links();
+
+        foreach ($crawler_links as $link) {
+            $links[] = $link->getUri();
+        }
+
+        return $links;
+    }
+
+    public function getSortedLinks(array $links): array
+    {
+        $urls = $inner = $outer = [];
+
+        foreach ($links as $link) {
+            if (strpos($link, $this->baseUrl) === 0) {
+                $inner[] = $link;
+
+                continue;
+            }
+
+            $outer[] = $link;
+        }
+
+        $urls['inner'] = array_unique($inner);
+        $urls['outer'] = array_unique($outer);
+
+        return $urls;
     }
 }

@@ -47,11 +47,20 @@ class CrawlCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $io->note(sprintf('Crawling started on: %s', $url));
 
-        $html = $this->retrieverService->getResponseContent($url);
+        $urls = $this->crawler->crawl($url);
 
-        [$inner, $outer] = $this->crawler->crawl($html, $url);
+        $urls = $this->crawler->getSortedLinks($urls);
 
-        dump($inner, $outer);
+        $io->note(sprintf('Visited URLS'));
+        dump('VISITED', $this->retrieverService->getVisitedUrl());
+
+        $io->note(sprintf('Inner URLS'));
+        dump($urls['inner']);
+
+        $io->note(sprintf('Outer URLS'));
+        dump($urls['outer']);
+
+
         $io->success('Crawling over!');
 
         return 0;

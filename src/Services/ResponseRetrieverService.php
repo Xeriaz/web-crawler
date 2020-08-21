@@ -13,6 +13,9 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class ResponseRetrieverService
 {
+    /** @var string[] */
+    private $visitedUrls = [];
+
     /**
      * @var HttpClientInterface
      */
@@ -33,17 +36,40 @@ class ResponseRetrieverService
      */
     public function getResponseContent(string $url): string
     {
-        $response = $this->client->request(
-            'GET',
-            $url
-        );
+        try {
+            $response = $this->client->request(
+                'GET',
+                $url
+            );
+        } catch (\Exception $e) {
+            dump('Bad URL: ' . $url);
+
+            return '';
+        }
+
+        $this->visitedUrls[] = $url;
 
         $statusCode = $response->getStatusCode();
 
         if ($statusCode !== Response::HTTP_OK) {
-            dd('Status code is: ' . $statusCode);
+            dump('Url: ' . $url . 'Status code is: ' . $statusCode);
+            return '';
         }
 
         return $response->getContent();
+    }
+
+    /**
+     * @param string $url
+     * @return bool
+     */
+    public function isUrlVisited(string $url): bool
+    {
+        return in_array($url, $this->visitedUrls);
+    }
+
+    public function getVisitedUrl()
+    {
+        return $this->visitedUrls;
     }
 }
