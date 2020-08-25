@@ -1,0 +1,2 @@
+parameters:
+    app.crawl_sleep: 10

@@ -36,6 +36,7 @@ class ResponseRetrieverService
      */
     public function getResponseContent(string $url): string
     {
+        dump(new \DateTime());
         try {
             $response = $this->client->request(
                 'GET',

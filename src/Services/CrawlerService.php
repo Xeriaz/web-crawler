@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace App\Services;
 
 use Symfony\Component\DomCrawler\Crawler;
-use Symfony\Component\Lock\LockFactory;
-use Symfony\Component\Lock\LockInterface;
 
 class CrawlerService
 {
@@ -18,9 +16,15 @@ class CrawlerService
      */
     private $retrieverService;
 
-    public function __construct(ResponseRetrieverService $retrieverService)
+    /**
+     * @var int
+     */
+    private $sleepSeconds;
+
+    public function __construct(ResponseRetrieverService $retrieverService, int $sleepSeconds)
     {
         $this->retrieverService = $retrieverService;
+        $this->sleepSeconds = $sleepSeconds;
     }
 
     public function crawl(string $baseUrl): array
@@ -36,6 +40,7 @@ class CrawlerService
                 continue;
             }
 
+            sleep($this->sleepSeconds);
             return array_merge($links, array_unique($this->crawl($link)));
         }
 
