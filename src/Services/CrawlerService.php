@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services;
 
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\Lock\LockFactory;
+use Symfony\Component\Lock\LockInterface;
 
 class CrawlerService
 {
