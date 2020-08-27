@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Constant\RouteStates;
+use App\Entity\Routes;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
@@ -21,9 +24,15 @@ class ResponseRetrieverService
      */
     private $client;
 
-    public function __construct(HttpClientInterface $client)
+    /**
+     * @var EntityManagerInterface
+     */
+    private $em;
+
+    public function __construct(HttpClientInterface $client, EntityManagerInterface $em)
     {
         $this->client = $client;
+        $this->em = $em;
     }
 
     /**
@@ -36,25 +45,42 @@ class ResponseRetrieverService
      */
     public function getResponseContent(string $url): string
     {
-        dump(new \DateTime());
+//        dump(new \DateTime());
+
+        /** @var Routes $route */
+        $route = $this->em->getRepository(Routes::class)->findOneBy(['route' => $url]);
+
+        if ($route !== null && $route->getState() === RouteStates::SUCCESS) {
+            return '';
+        }
+
+        ($route === null) ?: $route->setState(RouteStates::SUCCESS);
+
+        dump('Crawling Url: ' . $url. ', on: ' . date('H:i:s'));
+
         try {
-            $response = $this->client->request(
-                'GET',
-                $url
-            );
+            $response = $this->client->request('GET', $url);
         } catch (\Exception $e) {
+            ($route === null) ?: $route->setState(RouteStates::FAILED);
+            $this->em->flush();
+
             dump('Bad URL: ' . $url);
 
             return '';
         }
 
-        $this->visitedUrls[] = $url;
-
         $statusCode = $response->getStatusCode();
 
         if ($statusCode !== Response::HTTP_OK) {
             dump('Url: ' . $url . 'Status code is: ' . $statusCode);
+            ($route === null) ?: $route->setState(RouteStates::FAILED);
+            $this->em->flush();
+
             return '';
+        }
+
+        if ($route !== null) {
+            dump('State: ' . $route->getState());
         }
 
         return $response->getContent();

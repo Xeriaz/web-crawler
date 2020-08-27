@@ -99,9 +99,9 @@ class Routes
         return $this->timesVisited;
     }
 
-    public function setTimesVisited(int $timesVisited): self
+    public function incrementTimesVisited(): self
     {
-        $this->timesVisited = $timesVisited;
+        $this->timesVisited++;
 
         return $this;
     }

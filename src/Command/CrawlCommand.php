@@ -40,10 +40,10 @@ class CrawlCommand extends Command
         CrawlerService $crawler,
         LockFactory $lockFactory
     ) {
-        parent::__construct(null);
         $this->retrieverService = $retrieverService;
         $this->crawler = $crawler;
         $this->lockFactory = $lockFactory;
+        parent::__construct(null);
     }
 
     protected function configure(): void
@@ -69,18 +69,7 @@ class CrawlCommand extends Command
             return self::FAILURE;
         }
 
-        $urls = $this->crawler->crawl($url);
-        $urls = $this->crawler->getSortedLinks($urls);
-
-        $io->note(sprintf('Visited URLS'));
-        dump('VISITED', $this->retrieverService->getVisitedUrl());
-
-        $io->note(sprintf('Inner URLS'));
-        dump($urls['inner']);
-
-        $io->note(sprintf('Outer URLS'));
-        dump($urls['outer']);
-
+        $this->crawler->crawl($url);
 
         $io->success('Crawling over!');
 

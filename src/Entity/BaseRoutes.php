@@ -21,7 +21,7 @@ class BaseRoutes
     private $id;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\Column(type="string", length=255, unique=true)
      * @Assert\Url(
      *    message = "The url '{{ value }}' is not a valid url",
      * )

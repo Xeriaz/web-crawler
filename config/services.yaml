@@ -32,4 +32,5 @@ services:
     App\Services\CrawlerService:
         arguments:
             - '@App\Services\ResponseRetrieverService'
+            - '@Doctrine\ORM\EntityManagerInterface'
             - '%app.crawl_sleep%'
