@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\RoutesRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @ORM\Entity(repositoryClass=RoutesRepository::class)
@@ -19,6 +20,9 @@ class Routes
 
     /**
      * @ORM\Column(type="string", length=255)
+     * @Assert\Url(
+     *    message = "The url '{{ value }}' is not a valid url",
+     * )
      */
     private $route;
 
@@ -105,12 +109,5 @@ class Routes
     public function getCreatedOn(): ?\DateTimeInterface
     {
         return $this->createdOn;
-    }
-
-    public function setCreatedOn(\DateTimeInterface $createdOn): self
-    {
-        $this->createdOn = $createdOn;
-
-        return $this;
     }
 }
