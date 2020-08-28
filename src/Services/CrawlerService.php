@@ -50,11 +50,16 @@ class CrawlerService
 
         /** @var Routes $routes */
         $routes = $this->entityManager->getRepository(Routes::class)
-            ->findBy(['state' => RouteStates::PENDING]);
+            ->findBy(
+                [
+                    'baseRoute' => $this->baseRoute,
+                    'state' => RouteStates::PENDING
+                ]
+            );
 
         foreach ($routes as $key => $route) {
             $route->setState(RouteStates::IN_PROGRESS);
-//            sleep($this->sleepSeconds);
+            sleep($this->sleepSeconds);
 
             $this->crawl($route->getRoute());
         }
@@ -63,6 +68,7 @@ class CrawlerService
     private function saveCrawledLinks(string $html, string $baseUrl): void
     {
         $this->setBaseRoute($baseUrl);
+        $links = [];
 
         $crawler_links = (new Crawler($html, $baseUrl))
             ->filter('a')
@@ -80,9 +86,11 @@ class CrawlerService
             $routesRepository = $this->entityManager->getRepository(Routes::class);
             $isRouteExisting = $routesRepository->findOneBy(['route' => $link]);
 
-            if ($isRouteExisting !== null) {
+            if ($isRouteExisting !== null || in_array($link, $links, true)) {
                 continue;
             }
+
+            $links[] = $link;
 
             $route = (new Routes())
                 ->setRoute($link)

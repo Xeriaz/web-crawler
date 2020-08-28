@@ -45,14 +45,8 @@ class ResponseRetrieverService
      */
     public function getResponseContent(string $url): string
     {
-//        dump(new \DateTime());
-
         /** @var Routes $route */
         $route = $this->em->getRepository(Routes::class)->findOneBy(['route' => $url]);
-
-        if ($route !== null && $route->getState() === RouteStates::SUCCESS) {
-            return '';
-        }
 
         ($route === null) ?: $route->setState(RouteStates::SUCCESS);
 
@@ -72,15 +66,11 @@ class ResponseRetrieverService
         $statusCode = $response->getStatusCode();
 
         if ($statusCode !== Response::HTTP_OK) {
-            dump('Url: ' . $url . 'Status code is: ' . $statusCode);
+            dump('Url: ' . $url . ' Status code is: ' . $statusCode);
             ($route === null) ?: $route->setState(RouteStates::FAILED);
             $this->em->flush();
 
             return '';
-        }
-
-        if ($route !== null) {
-            dump('State: ' . $route->getState());
         }
 
         return $response->getContent();
