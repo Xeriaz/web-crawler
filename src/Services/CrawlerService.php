@@ -5,18 +5,16 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Constant\RouteStates;
-use App\Entity\BaseRoutes;
 use App\Entity\Routes;
+use App\Repository\RoutesRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\Routing\Route;
 
 class CrawlerService
 {
     /** @var string */
     private $baseUrl;
-
-    /** @var BaseRoutes */
-    private $baseRoute;
 
     /**
      * @var ResponseRetrieverService
@@ -29,6 +27,11 @@ class CrawlerService
     private $entityManager;
 
     /**
+     * @var RoutesRepository
+     */
+    private $repository;
+
+    /**
      * @var int
      */
     private $sleepSeconds;
@@ -36,11 +39,13 @@ class CrawlerService
     public function __construct(
         ResponseRetrieverService $retrieverService,
         EntityManagerInterface $entityManager,
+        RoutesRepository $repository,
         int $sleepSeconds
     ) {
         $this->retrieverService = $retrieverService;
-        $this->sleepSeconds = $sleepSeconds;
         $this->entityManager = $entityManager;
+        $this->repository = $repository;
+        $this->sleepSeconds = $sleepSeconds;
     }
 
     public function crawl(string $baseUrl): void
@@ -49,16 +54,12 @@ class CrawlerService
         $this->saveCrawledLinks($html, $baseUrl);
 
         /** @var Routes $routes */
-        $routes = $this->entityManager->getRepository(Routes::class)
-            ->findBy(
-                [
-                    'baseRoute' => $this->baseRoute,
-                    'state' => RouteStates::PENDING
-                ]
-            );
+        $routes = $this->repository
+            ->findPendingRoutesByBaseUrl($baseUrl);
 
-        foreach ($routes as $key => $route) {
+        foreach ($routes as $route) {
             $route->setState(RouteStates::IN_PROGRESS);
+
             sleep($this->sleepSeconds);
 
             $this->crawl($route->getRoute());
@@ -67,9 +68,15 @@ class CrawlerService
 
     private function saveCrawledLinks(string $html, string $baseUrl): void
     {
-        $this->setBaseRoute($baseUrl);
-        $links = [];
+        $isRouteExisting = $this->repository->findOneBy(['route' => $baseUrl]);
 
+        $state = ($isRouteExisting !== null) ? RouteStates::SKIPPED : RouteStates::PENDING;
+
+        $route = (new Routes())
+            ->setRoute($baseUrl)
+            ->setState($state);
+
+        $this->entityManager->persist($route);
         $crawler_links = (new Crawler($html, $baseUrl))
             ->filter('a')
             ->links();
@@ -77,75 +84,18 @@ class CrawlerService
         foreach ($crawler_links as $link) {
             $link = $link->getUri();
 
-            if (strpos($link, $this->baseRoute->getBaseRoute()) === 0) {
-                $state = RouteStates::PENDING;
-            } else {
-                $state = RouteStates::OUTER;
-            }
+            $isRouteExisting = $this->repository->findOneBy(['route' => $link]);
 
-            $routesRepository = $this->entityManager->getRepository(Routes::class);
-            $isRouteExisting = $routesRepository->findOneBy(['route' => $link]);
+            $state = ($isRouteExisting !== null) ? RouteStates::SKIPPED : RouteStates::PENDING;
 
-            if ($isRouteExisting !== null || in_array($link, $links, true)) {
-                continue;
-            }
-
-            $links[] = $link;
-
-            $route = (new Routes())
+            $innerRoute = (new Routes())
                 ->setRoute($link)
                 ->setState($state)
-                ->setBaseRoute($this->baseRoute);
+                ->addParentRoute($route);
 
-            $this->entityManager->persist($route);
+            $this->entityManager->persist($innerRoute);
         }
 
-        $this->entityManager->flush();
-    }
-
-    public function getSortedLinks(array $links): array
-    {
-        $urls = $inner = $outer = [];
-
-        foreach ($links as $link) {
-            if (strpos($link, $this->baseUrl) === 0) {
-                $inner[] = $link;
-
-                continue;
-            }
-
-            $outer[] = $link;
-        }
-
-        $urls['inner'] = array_unique($inner);
-        $urls['outer'] = array_unique($outer);
-
-        return $urls;
-    }
-
-    /**
-     * @param string $route
-     */
-    private function setBaseRoute(string $route): void
-    {
-        if (isset($this->baseRoute)) {
-            return;
-        }
-
-        $baseRoute = $this->entityManager
-            ->getRepository(BaseRoutes::class)
-            ->findOneBy(['baseRoute' => $route]);
-
-        if ($baseRoute !== null) {
-            $this->baseRoute = $baseRoute;
-
-            return;
-        }
-
-        $this->baseRoute = new BaseRoutes();
-        $this->baseRoute->setBaseRoute($route);
-
-        $this->entityManager->persist($this->baseRoute);
         $this->entityManager->flush();
     }
 }

@@ -16,9 +16,6 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class ResponseRetrieverService
 {
-    /** @var string[] */
-    private $visitedUrls = [];
-
     /**
      * @var HttpClientInterface
      */
@@ -54,39 +51,30 @@ class ResponseRetrieverService
 
         try {
             $response = $this->client->request('GET', $url);
+            $statusCode = $response->getStatusCode();
+
+            if ($statusCode !== Response::HTTP_OK) {
+                dump('Url: ' . $url . ' Status code is: ' . $statusCode);
+
+                ($route === null) ?: $route->setState(RouteStates::FAILED);
+                ($route === null) ?: $route->setHttpStatus($statusCode);
+
+                $this->em->flush();
+
+                return '';
+            }
+
+            ($route === null) ?: $route->setHttpStatus(Response::HTTP_OK);
         } catch (\Exception $e) {
             ($route === null) ?: $route->setState(RouteStates::FAILED);
-            $this->em->flush();
 
             dump('Bad URL: ' . $url);
 
             return '';
-        }
-
-        $statusCode = $response->getStatusCode();
-
-        if ($statusCode !== Response::HTTP_OK) {
-            dump('Url: ' . $url . ' Status code is: ' . $statusCode);
-            ($route === null) ?: $route->setState(RouteStates::FAILED);
+        } finally {
             $this->em->flush();
-
-            return '';
         }
 
         return $response->getContent();
-    }
-
-    /**
-     * @param string $url
-     * @return bool
-     */
-    public function isUrlVisited(string $url): bool
-    {
-        return in_array($url, $this->visitedUrls);
-    }
-
-    public function getVisitedUrl()
-    {
-        return $this->visitedUrls;
     }
 }

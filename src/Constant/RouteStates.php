@@ -22,6 +22,6 @@ class RouteStates
     public const IN_PROGRESS = 'in_progress';
     public const SUCCESS = 'success';
     public const FAILED = 'failed';
+    public const SKIPPED = 'skipped';
     public const DEAD = 'dead';
-    public const OUTER = 'outer';
 }

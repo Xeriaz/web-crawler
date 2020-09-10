@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Constant\RouteStates;
 use App\Entity\Routes;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -19,32 +20,14 @@ class RoutesRepository extends ServiceEntityRepository
         parent::__construct($registry, Routes::class);
     }
 
-    // /**
-    //  * @return Routes[] Returns an array of Routes objects
-    //  */
-    /*
-    public function findByExampleField($value)
+    public function findPendingRoutesByBaseUrl(string $baseLink)
     {
         return $this->createQueryBuilder('r')
-            ->andWhere('r.exampleField = :val')
-            ->setParameter('val', $value)
-            ->orderBy('r.id', 'ASC')
-            ->setMaxResults(10)
+            ->andWhere('r.route LIKE :baseLink')
+            ->andWhere('r.state = :state')
+            ->setParameter('baseLink', $baseLink . '%')
+            ->setParameter('state', RouteStates::PENDING)
             ->getQuery()
-            ->getResult()
-        ;
+            ->getResult();
     }
-    */
-
-    /*
-    public function findOneBySomeField($value): ?Routes
-    {
-        return $this->createQueryBuilder('r')
-            ->andWhere('r.exampleField = :val')
-            ->setParameter('val', $value)
-            ->getQuery()
-            ->getOneOrNullResult()
-        ;
-    }
-    */
 }
