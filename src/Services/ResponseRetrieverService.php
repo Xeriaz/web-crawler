@@ -59,6 +59,7 @@ class ResponseRetrieverService
                 ($route === null) ?: $route->setState(RouteStates::FAILED);
                 ($route === null) ?: $route->setHttpStatus($statusCode);
 
+                $this->em->persist($route);
                 $this->em->flush();
 
                 return '';
@@ -72,7 +73,10 @@ class ResponseRetrieverService
 
             return '';
         } finally {
-            $this->em->flush();
+            if ($route !== null) {
+                $this->em->persist($route);
+                $this->em->flush();
+            }
         }
 
         return $response->getContent();
