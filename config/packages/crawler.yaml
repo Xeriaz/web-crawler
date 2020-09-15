@@ -1,2 +1,2 @@
 parameters:
-    app.crawl_sleep: 10
+    app.crawl_sleep: 5
