@@ -55,7 +55,7 @@ class CrawlCommand extends Command
         try {
             $this->crawler->crawl($url);
             $io->success('Crawling over!');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             dump($e->getMessage() . PHP_EOL . $e->getTraceAsString());
         } finally {
             $this->lock->release();

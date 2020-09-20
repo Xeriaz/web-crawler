@@ -13,6 +13,7 @@ use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use function Composer\Autoload\includeFile;
 
 class ResponseRetrieverService
 {
@@ -45,7 +46,13 @@ class ResponseRetrieverService
         /** @var Routes $route */
         $route = $this->em->getRepository(Routes::class)->findOneBy(['route' => $url]);
 
-        ($route === null) ?: $route->setState(RouteStates::SUCCESS);
+        if ($route === null) {
+            $route = new Routes();
+            $route->setRoute($url);
+            $route->setState(RouteStates::IN_PROGRESS);
+        }
+
+        $route->setState(RouteStates::SUCCESS);
 
         dump('Crawling Url: ' . $url. ', on: ' . date('H:i:s'));
 
@@ -56,8 +63,8 @@ class ResponseRetrieverService
             if ($statusCode !== Response::HTTP_OK) {
                 dump('Url: ' . $url . ' Status code is: ' . $statusCode);
 
-                ($route === null) ?: $route->setState(RouteStates::FAILED);
-                ($route === null) ?: $route->setHttpStatus($statusCode);
+                $route->setState(RouteStates::FAILED);
+                $route->setHttpStatus($statusCode);
 
                 $this->em->persist($route);
                 $this->em->flush();
@@ -65,18 +72,17 @@ class ResponseRetrieverService
                 return '';
             }
 
-            ($route === null) ?: $route->setHttpStatus(Response::HTTP_OK);
-        } catch (\Exception $e) {
-            ($route === null) ?: $route->setState(RouteStates::FAILED);
+            $route->setHttpStatus(Response::HTTP_OK);
+        } catch (\Throwable $e) {
+            $route->setState(RouteStates::FAILED);
 
+            dump($e->getMessage() . PHP_EOL . $e->getTraceAsString());
             dump('Bad URL: ' . $url);
 
             return '';
         } finally {
-            if ($route !== null) {
-                $this->em->persist($route);
-                $this->em->flush();
-            }
+            $this->em->persist($route);
+            $this->em->flush();
         }
 
         return $response->getContent();
