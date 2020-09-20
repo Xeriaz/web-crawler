@@ -2,16 +2,16 @@
 
 namespace App\Entity;
 
-use App\Repository\RoutesRepository;
+use App\Repository\LinksRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * @ORM\Entity(repositoryClass=RoutesRepository::class)
+ * @ORM\Entity(repositoryClass=LinksRepository::class)
  */
-class Routes
+class Links
 {
     /**
      * @ORM\Id
@@ -26,7 +26,7 @@ class Routes
      *    message = "The url '{{ value }}' is not a valid url",
      * )
      */
-    private $route;
+    private $link;
 
     /**
      * @ORM\Column(type="string", length=255)
@@ -44,14 +44,14 @@ class Routes
     private $createdOn;
 
     /**
-     * @ORM\ManyToMany(targetEntity=Routes::class, inversedBy="innerRoutes")
+     * @ORM\ManyToMany(targetEntity=Links::class, inversedBy="innerLinks")
      */
-    private $parentRoutes;
+    private $parentLinks;
 
     /**
-     * @ORM\ManyToMany(targetEntity=Routes::class, mappedBy="parentRoutes")
+     * @ORM\ManyToMany(targetEntity=Links::class, mappedBy="parentLinks")
      */
-    private $innerRoutes;
+    private $innerLinks;
 
     /**
      * @ORM\Column(type="integer", nullable=true)
@@ -62,8 +62,8 @@ class Routes
     {
         $this->timesVisited = 0;
         $this->createdOn = new \DateTime();
-        $this->parentRoutes = new ArrayCollection();
-        $this->innerRoutes = new ArrayCollection();
+        $this->parentLinks = new ArrayCollection();
+        $this->innerLinks = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -71,14 +71,14 @@ class Routes
         return $this->id;
     }
 
-    public function getRoute(): ?string
+    public function getLink(): ?string
     {
-        return $this->route;
+        return $this->link;
     }
 
-    public function setRoute(string $route): self
+    public function setLink(string $link): self
     {
-        $this->route = $route;
+        $this->link = $link;
 
         return $this;
     }
@@ -115,24 +115,24 @@ class Routes
     /**
      * @return Collection|self[]
      */
-    public function getParentRoutes(): Collection
+    public function getParentLinks(): Collection
     {
-        return $this->parentRoutes;
+        return $this->parentLinks;
     }
 
-    public function addParentRoute(self $parentRoute): self
+    public function addParentLink(self $parentLink): self
     {
-        if (!$this->parentRoutes->contains($parentRoute)) {
-            $this->parentRoutes[] = $parentRoute;
+        if (!$this->parentLinks->contains($parentLink)) {
+            $this->parentLinks[] = $parentLink;
         }
 
         return $this;
     }
 
-    public function removeParentRoute(self $parentRoute): self
+    public function removeParentLink(self $parentLink): self
     {
-        if ($this->parentRoutes->contains($parentRoute)) {
-            $this->parentRoutes->removeElement($parentRoute);
+        if ($this->parentLinks->contains($parentLink)) {
+            $this->parentLinks->removeElement($parentLink);
         }
 
         return $this;
@@ -141,26 +141,26 @@ class Routes
     /**
      * @return Collection|self[]
      */
-    public function getInnerRoutes(): Collection
+    public function getInnerLinks(): Collection
     {
-        return $this->innerRoutes;
+        return $this->innerLinks;
     }
 
-    public function addInnerRoute(self $innerRoute): self
+    public function addInnerLink(self $innerLink): self
     {
-        if (!$this->innerRoutes->contains($innerRoute)) {
-            $this->innerRoutes[] = $innerRoute;
-            $innerRoute->addParentRoute($this);
+        if (!$this->innerLinks->contains($innerLink)) {
+            $this->innerLinks[] = $innerLink;
+            $innerLink->addParentLink($this);
         }
 
         return $this;
     }
 
-    public function removeInnerRoute(self $innerRoute): self
+    public function removeInnerLink(self $innerLink): self
     {
-        if ($this->innerRoutes->contains($innerRoute)) {
-            $this->innerRoutes->removeElement($innerRoute);
-            $innerRoute->removeParentRoute($this);
+        if ($this->innerLinks->contains($innerLink)) {
+            $this->innerLinks->removeElement($innerLink);
+            $innerLink->removeParentLink($this);
         }
 
         return $this;

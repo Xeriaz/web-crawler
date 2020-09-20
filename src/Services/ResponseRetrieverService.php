@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Constant\RouteStates;
-use App\Entity\Routes;
+use App\Constant\LinksStates;
+use App\Entity\Links;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
@@ -13,7 +13,6 @@ use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
-use function Composer\Autoload\includeFile;
 
 class ResponseRetrieverService
 {
@@ -43,16 +42,9 @@ class ResponseRetrieverService
      */
     public function getResponseContent(string $url): string
     {
-        /** @var Routes $route */
-        $route = $this->em->getRepository(Routes::class)->findOneBy(['route' => $url]);
+        $link = $this->getLink($url);
 
-        if ($route === null) {
-            $route = new Routes();
-            $route->setRoute($url);
-            $route->setState(RouteStates::IN_PROGRESS);
-        }
-
-        $route->setState(RouteStates::SUCCESS);
+        $link->setState(LinksStates::SUCCESS);
 
         dump('Crawling Url: ' . $url. ', on: ' . date('H:i:s'));
 
@@ -61,30 +53,45 @@ class ResponseRetrieverService
             $statusCode = $response->getStatusCode();
 
             if ($statusCode !== Response::HTTP_OK) {
-                dump('Url: ' . $url . ' Status code is: ' . $statusCode);
+                dump('Url: ' . $url . '; Status code is: ' . $statusCode);
 
-                $route->setState(RouteStates::FAILED);
-                $route->setHttpStatus($statusCode);
-
-                $this->em->persist($route);
-                $this->em->flush();
+                $link->setState(LinksStates::FAILED);
+                $link->setHttpStatus($statusCode);
 
                 return '';
             }
 
-            $route->setHttpStatus(Response::HTTP_OK);
+            $link->setHttpStatus(Response::HTTP_OK);
         } catch (\Throwable $e) {
-            $route->setState(RouteStates::FAILED);
+            $link->setState(LinksStates::FAILED);
 
             dump($e->getMessage() . PHP_EOL . $e->getTraceAsString());
             dump('Bad URL: ' . $url);
 
             return '';
         } finally {
-            $this->em->persist($route);
+            $this->em->persist($link);
             $this->em->flush();
         }
 
         return $response->getContent();
+    }
+
+    /**
+     * @param string $url
+     * @return Links
+     */
+    private function getLink(string $url): Links
+    {
+        /** @var Links $links */
+        $links = $this->em->getRepository(Links::class)
+            ->findOneBy(['link' => $url]);
+
+        if ($links === null) {
+            $links = new Links();
+            $links->setLink($url);
+        }
+
+        return $links;
     }
 }

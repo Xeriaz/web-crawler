@@ -33,5 +33,4 @@ services:
         arguments:
             - '@App\Services\ResponseRetrieverService'
             - '@Doctrine\ORM\EntityManagerInterface'
-            - '@App\Repository\RoutesRepository'
             - '%app.crawl_sleep%'
