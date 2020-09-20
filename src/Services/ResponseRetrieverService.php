@@ -13,7 +13,6 @@ use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
-use function Composer\Autoload\includeFile;
 
 class ResponseRetrieverService
 {
@@ -43,14 +42,7 @@ class ResponseRetrieverService
      */
     public function getResponseContent(string $url): string
     {
-        /** @var Routes $route */
-        $route = $this->em->getRepository(Routes::class)->findOneBy(['route' => $url]);
-
-        if ($route === null) {
-            $route = new Routes();
-            $route->setRoute($url);
-            $route->setState(RouteStates::IN_PROGRESS);
-        }
+        $route = $this->getRoute($url);
 
         $route->setState(RouteStates::SUCCESS);
 
@@ -61,13 +53,10 @@ class ResponseRetrieverService
             $statusCode = $response->getStatusCode();
 
             if ($statusCode !== Response::HTTP_OK) {
-                dump('Url: ' . $url . ' Status code is: ' . $statusCode);
+                dump('Url: ' . $url . '; Status code is: ' . $statusCode);
 
                 $route->setState(RouteStates::FAILED);
                 $route->setHttpStatus($statusCode);
-
-                $this->em->persist($route);
-                $this->em->flush();
 
                 return '';
             }
@@ -86,5 +75,23 @@ class ResponseRetrieverService
         }
 
         return $response->getContent();
+    }
+
+    /**
+     * @param string $url
+     * @return Routes
+     */
+    private function getRoute(string $url): Routes
+    {
+        /** @var Routes $route */
+        $route = $this->em->getRepository(Routes::class)
+            ->findOneBy(['route' => $url]);
+
+        if ($route === null) {
+            $route = new Routes();
+            $route->setRoute($url);
+        }
+
+        return $route;
     }
 }

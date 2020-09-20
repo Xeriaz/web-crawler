@@ -9,13 +9,9 @@ use App\Entity\Routes;
 use App\Repository\RoutesRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DomCrawler\Crawler;
-use Symfony\Component\Routing\Route;
 
 class CrawlerService
 {
-    /** @var string */
-    private $baseUrl;
-
     /**
      * @var ResponseRetrieverService
      */
@@ -58,8 +54,6 @@ class CrawlerService
             ->findPendingRoutesByBaseUrl($baseUrl);
 
         foreach ($routes as $route) {
-            $route->setState(RouteStates::IN_PROGRESS);
-
             sleep($this->sleepSeconds);
 
             $this->crawl($route->getRoute());
