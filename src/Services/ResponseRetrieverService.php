@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Constant\RouteStates;
-use App\Entity\Routes;
+use App\Constant\LinksStates;
+use App\Entity\Links;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
@@ -42,9 +42,9 @@ class ResponseRetrieverService
      */
     public function getResponseContent(string $url): string
     {
-        $route = $this->getRoute($url);
+        $link = $this->getLink($url);
 
-        $route->setState(RouteStates::SUCCESS);
+        $link->setState(LinksStates::SUCCESS);
 
         dump('Crawling Url: ' . $url. ', on: ' . date('H:i:s'));
 
@@ -55,22 +55,22 @@ class ResponseRetrieverService
             if ($statusCode !== Response::HTTP_OK) {
                 dump('Url: ' . $url . '; Status code is: ' . $statusCode);
 
-                $route->setState(RouteStates::FAILED);
-                $route->setHttpStatus($statusCode);
+                $link->setState(LinksStates::FAILED);
+                $link->setHttpStatus($statusCode);
 
                 return '';
             }
 
-            $route->setHttpStatus(Response::HTTP_OK);
+            $link->setHttpStatus(Response::HTTP_OK);
         } catch (\Throwable $e) {
-            $route->setState(RouteStates::FAILED);
+            $link->setState(LinksStates::FAILED);
 
             dump($e->getMessage() . PHP_EOL . $e->getTraceAsString());
             dump('Bad URL: ' . $url);
 
             return '';
         } finally {
-            $this->em->persist($route);
+            $this->em->persist($link);
             $this->em->flush();
         }
 
@@ -79,19 +79,19 @@ class ResponseRetrieverService
 
     /**
      * @param string $url
-     * @return Routes
+     * @return Links
      */
-    private function getRoute(string $url): Routes
+    private function getLink(string $url): Links
     {
-        /** @var Routes $route */
-        $route = $this->em->getRepository(Routes::class)
-            ->findOneBy(['route' => $url]);
+        /** @var Links $links */
+        $links = $this->em->getRepository(Links::class)
+            ->findOneBy(['link' => $url]);
 
-        if ($route === null) {
-            $route = new Routes();
-            $route->setRoute($url);
+        if ($links === null) {
+            $links = new Links();
+            $links->setLink($url);
         }
 
-        return $route;
+        return $links;
     }
 }

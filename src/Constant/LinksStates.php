@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Constant;
 
-interface RouteStates
+interface LinksStates
 {
     public const PENDING = 'pending';
     public const SUCCESS = 'success';

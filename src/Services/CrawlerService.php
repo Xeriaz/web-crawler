@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Constant\RouteStates;
-use App\Entity\Routes;
-use App\Repository\RoutesRepository;
+use App\Constant\LinksStates;
+use App\Entity\Links;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -23,11 +22,6 @@ class CrawlerService
     private $entityManager;
 
     /**
-     * @var RoutesRepository
-     */
-    private $repository;
-
-    /**
      * @var int
      */
     private $sleepSeconds;
@@ -35,12 +29,10 @@ class CrawlerService
     public function __construct(
         ResponseRetrieverService $retrieverService,
         EntityManagerInterface $entityManager,
-        RoutesRepository $repository,
         int $sleepSeconds
     ) {
         $this->retrieverService = $retrieverService;
         $this->entityManager = $entityManager;
-        $this->repository = $repository;
         $this->sleepSeconds = $sleepSeconds;
     }
 
@@ -49,45 +41,50 @@ class CrawlerService
         $html = $this->retrieverService->getResponseContent($baseUrl);
         $this->saveCrawledLinks($html, $baseUrl);
 
-        /** @var Routes $routes */
-        $routes = $this->repository
-            ->findPendingRoutesByBaseUrl($baseUrl);
+        /** @var Links $links */
+        $links = $this->entityManager
+            ->getRepository(Links::class)
+            ->findPendingLinksByBaseUrl($baseUrl);
 
-        foreach ($routes as $route) {
+        foreach ($links as $link) {
             sleep($this->sleepSeconds);
 
-            $this->crawl($route->getRoute());
+            $this->crawl($link->getLink());
         }
     }
 
     private function saveCrawledLinks(string $html, string $baseUrl): void
     {
-        $isRouteExisting = $this->repository->findOneBy(['route' => $baseUrl]);
+        $linkExist = $this->entityManager
+            ->getRepository(Links::class)
+            ->findOneBy(['link' => $baseUrl]);
 
-        $state = ($isRouteExisting !== null) ? RouteStates::SKIPPED : RouteStates::PENDING;
+        $state = ($linkExist !== null) ? LinksStates::SKIPPED : LinksStates::PENDING;
 
-        $route = (new Routes())
-            ->setRoute($baseUrl)
+        $link = (new Links())
+            ->setLink($baseUrl)
             ->setState($state);
 
-        $this->entityManager->persist($route);
-        $crawler_links = (new Crawler($html, $baseUrl))
+        $this->entityManager->persist($link);
+        $crawlerLinks = (new Crawler($html, $baseUrl))
             ->filter('a')
             ->links();
 
-        foreach ($crawler_links as $link) {
-            $link = $link->getUri();
+        foreach ($crawlerLinks as $crawlerLink) {
+            $uri = $crawlerLink->getUri();
 
-            $isRouteExisting = $this->repository->findOneBy(['route' => $link]);
+            $linkExist = $this->entityManager
+                ->getRepository(Links::class)
+                ->findOneBy(['link' => $uri]);
 
-            $state = ($isRouteExisting !== null) ? RouteStates::SKIPPED : RouteStates::PENDING;
+            $state = ($linkExist !== null) ? LinksStates::SKIPPED : LinksStates::PENDING;
 
-            $innerRoute = (new Routes())
-                ->setRoute($link)
+            $innerLink = (new Links())
+                ->setLink($uri)
                 ->setState($state)
-                ->addParentRoute($route);
+                ->addParentLink($link);
 
-            $this->entityManager->persist($innerRoute);
+            $this->entityManager->persist($innerLink);
         }
 
         $this->entityManager->flush();
