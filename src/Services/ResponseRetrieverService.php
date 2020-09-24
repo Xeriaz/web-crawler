@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Constant\LinksStates;
+use App\Constant\Workflows;
+use App\Constant\WorkflowTransitions;
 use App\Entity\Links;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Workflow\Registry;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
@@ -26,10 +29,16 @@ class ResponseRetrieverService
      */
     private $em;
 
-    public function __construct(HttpClientInterface $client, EntityManagerInterface $em)
+    /**
+     * @var Registry
+     */
+    private $workflow;
+
+    public function __construct(HttpClientInterface $client, EntityManagerInterface $em, Registry $workflow)
     {
         $this->client = $client;
         $this->em = $em;
+        $this->workflow = $workflow;
     }
 
     /**
@@ -43,8 +52,7 @@ class ResponseRetrieverService
     public function getResponseContent(string $url): string
     {
         $link = $this->getLink($url);
-
-        $link->setState(LinksStates::SUCCESS);
+        $stateMachine = $this->workflow->get($link, Workflows::LINK_CRAWLING);
 
         dump('Crawling Url: ' . $url. ', on: ' . date('H:i:s'));
 
@@ -55,7 +63,7 @@ class ResponseRetrieverService
             if ($statusCode !== Response::HTTP_OK) {
                 dump('Url: ' . $url . '; Status code is: ' . $statusCode);
 
-                $link->setState(LinksStates::FAILED);
+                $stateMachine->apply($link, WorkflowTransitions::FAILING);
                 $link->setHttpStatus($statusCode);
 
                 return '';
@@ -63,13 +71,19 @@ class ResponseRetrieverService
 
             $link->setHttpStatus(Response::HTTP_OK);
         } catch (\Throwable $e) {
-            $link->setState(LinksStates::FAILED);
-
             dump($e->getMessage() . PHP_EOL . $e->getTraceAsString());
             dump('Bad URL: ' . $url);
 
             return '';
         } finally {
+            if (isset($statusCode)) {
+                $transition = $this->resolveTransitionByStatusCode($statusCode);
+            } else {
+                $transition = WorkflowTransitions::FAILING;
+            }
+
+            $stateMachine->apply($link, $transition);
+
             $this->em->persist($link);
             $this->em->flush();
         }
@@ -93,5 +107,26 @@ class ResponseRetrieverService
         }
 
         return $links;
+    }
+
+    private function resolveTransitionByStatusCode(int $statusCode): string
+    {
+        if ($statusCode >= 500) {
+            return WorkflowTransitions::DYING;
+        }
+
+        if ($statusCode >= 400) {
+            return WorkflowTransitions::FAILING;
+        }
+
+        if ($statusCode >= 300) {
+            return WorkflowTransitions::REDIRECTING;
+        }
+
+        if ($statusCode >= 200) {
+            return WorkflowTransitions::SUCCESS;
+        }
+
+        return WorkflowTransitions::FAILING;
     }
 }

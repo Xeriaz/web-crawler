@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Constant\LinksStates;
+use App\Constant\Workflows;
+use App\Constant\WorkflowTransitions;
 use App\Entity\Links;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\Workflow\Registry;
 
 class CrawlerService
 {
@@ -22,6 +25,11 @@ class CrawlerService
     private $entityManager;
 
     /**
+     * @var Registry
+     */
+    private $workflows;
+
+    /**
      * @var int
      */
     private $sleepSeconds;
@@ -29,10 +37,12 @@ class CrawlerService
     public function __construct(
         ResponseRetrieverService $retrieverService,
         EntityManagerInterface $entityManager,
+        Registry $workflows,
         int $sleepSeconds
     ) {
         $this->retrieverService = $retrieverService;
         $this->entityManager = $entityManager;
+        $this->workflows = $workflows;
         $this->sleepSeconds = $sleepSeconds;
     }
 
@@ -59,11 +69,14 @@ class CrawlerService
             ->getRepository(Links::class)
             ->findOneBy(['link' => $baseUrl]);
 
-        $state = ($linkExist !== null) ? LinksStates::SKIPPED : LinksStates::PENDING;
+        $transition = ($linkExist !== null) ? WorkflowTransitions::SKIPPING : WorkflowTransitions::PENDING;
 
         $link = (new Links())
-            ->setLink($baseUrl)
-            ->setState($state);
+            ->setLink($baseUrl);
+
+        $stateMachine = $this->workflows->get($link, Workflows::LINK_CRAWLING);
+
+        $stateMachine->apply($link, $transition);
 
         $this->entityManager->persist($link);
         $crawlerLinks = (new Crawler($html, $baseUrl))
@@ -77,12 +90,14 @@ class CrawlerService
                 ->getRepository(Links::class)
                 ->findOneBy(['link' => $uri]);
 
-            $state = ($linkExist !== null) ? LinksStates::SKIPPED : LinksStates::PENDING;
+            $transition = ($linkExist !== null) ? WorkflowTransitions::SKIPPING : WorkflowTransitions::PENDING;
 
             $innerLink = (new Links())
                 ->setLink($uri)
-                ->setState($state)
                 ->addParentLink($link);
+
+            $stateMachine = $this->workflows->get($innerLink, Workflows::LINK_CRAWLING);
+            $stateMachine->apply($innerLink, $transition);
 
             $this->entityManager->persist($innerLink);
         }

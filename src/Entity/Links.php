@@ -58,6 +58,11 @@ class Links
      */
     private $httpStatus;
 
+    /**
+     * @var string
+     */
+    private $currentPlace;
+
     public function __construct()
     {
         $this->timesVisited = 0;
@@ -176,5 +181,21 @@ class Links
         $this->httpStatus = $httpStatus;
 
         return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getCurrentPlace(): string
+    {
+        return $this->currentPlace;
+    }
+
+    /**
+     * @param string $currentPlace
+     */
+    public function setCurrentPlace(string $currentPlace): void
+    {
+        $this->currentPlace = $currentPlace;
     }
 }

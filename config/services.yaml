@@ -33,4 +33,5 @@ services:
         arguments:
             - '@App\Services\ResponseRetrieverService'
             - '@Doctrine\ORM\EntityManagerInterface'
+            - '@workflow.registry'
             - '%app.crawl_sleep%'

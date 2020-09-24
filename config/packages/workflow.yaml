@@ -21,41 +21,29 @@ framework:
                     from: start
                     to: pending
                 skipping:
-                    from: start
+                    from: [start, pending]
                     to: skipped
                 success:
-                    from: start
+                    from: [start, pending]
                     to: success
                 redirecting:
-                    from: start
+                    from: [start, pending]
                     to: redirected
                 failing:
-                    from: start
+                    from: [start, pending]
                     to: failed
                 dying:
-                    from: start
+                    from: [start, pending]
                     to: dead
                 recrawl_success:
-                    from: success
+                    from: [pending, success, failed]
                     to: success
-                recrawl_success_redirecting:
-                    from: success
+                recrawl_redirecting:
+                    from: [pending, success, failed]
                     to: redirected
-                recrawl_success_failing:
-                    from: success
+                recrawl_failing:
+                    from: [pending, success, failed]
                     to: failed
-                recrawl_success_dying:
-                    from: success
-                    to: dead
-                recrawl_failed_success:
-                    from: failed
-                    to: success
-                recrawl_failed_redirecting:
-                    from: failed
-                    to: redirected
-                recrawl_failed_failing:
-                    from: failed
-                    to: failed
-                recrawl_failed_dying:
-                    from: failed
+                recrawl_dying:
+                    from: [pending, success, failed]
                     to: dead
