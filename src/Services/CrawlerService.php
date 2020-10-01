@@ -24,7 +24,7 @@ class CrawlerService
     /**
      * @var Registry
      */
-    private $workflows;
+    private $workflow;
 
     /**
      * @var int
@@ -34,12 +34,12 @@ class CrawlerService
     public function __construct(
         ResponseRetrieverService $retrieverService,
         EntityManagerInterface $entityManager,
-        Registry $workflows,
+        Registry $workflow,
         int $sleepSeconds
     ) {
         $this->retrieverService = $retrieverService;
         $this->entityManager = $entityManager;
-        $this->workflows = $workflows;
+        $this->workflow = $workflow;
         $this->sleepSeconds = $sleepSeconds;
     }
 
@@ -66,47 +66,49 @@ class CrawlerService
      */
     private function saveCrawledLinks(string $html, string $baseUrl): void
     {
-        $transition = $this->resolveTransition($baseUrl);
+        $link = (new Link())->setLink($baseUrl);
+        $this->applyState($link, $baseUrl);
 
-        $link = (new Link())
-            ->setLink($baseUrl);
-
-        $stateMachine = $this->workflows->get($link, Link::WORKFLOW_LINK_CRAWLING);
-
-        $stateMachine->apply($link, $transition);
-
-        $this->entityManager->persist($link);
         $crawlerLinks = (new Crawler($html, $baseUrl))
             ->filter('a')
             ->links();
 
         foreach ($crawlerLinks as $crawlerLink) {
             $uri = $crawlerLink->getUri();
-            $transition = $this->resolveTransition($uri);
 
             $innerLink = (new Link())
                 ->setLink($uri)
                 ->addParentLink($link);
 
-            $stateMachine = $this->workflows->get($innerLink, Link::WORKFLOW_LINK_CRAWLING);
-            $stateMachine->apply($innerLink, $transition);
-
-            $this->entityManager->persist($innerLink);
+            $this->applyState($innerLink, $uri);
         }
 
         $this->entityManager->flush();
     }
 
     /**
-     * @param string $baseUrl
+     * @param string $url
      * @return string
      */
-    private function resolveTransition(string $baseUrl): string
+    private function resolveTransition(string $url): string
     {
         $linkExist = $this->entityManager
             ->getRepository(Link::class)
-            ->findOneBy(['link' => $baseUrl]);
+            ->findOneBy(['link' => $url]);
 
         return ($linkExist !== null) ? Link::TRANSITION_SKIPPING : Link::TRANSITION_PENDING;
+    }
+
+    /**
+     * @param Link $link
+     * @param string $url
+     * @return void
+     */
+    private function applyState(Link $link, string $url): void
+    {
+        $stateMachine = $this->workflow->get($link);
+        $stateMachine->apply($link, $this->resolveTransition($url));
+
+        $this->entityManager->persist($link);
     }
 }

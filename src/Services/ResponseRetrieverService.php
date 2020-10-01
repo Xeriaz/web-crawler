@@ -49,7 +49,7 @@ class ResponseRetrieverService
     public function getResponseContent(string $url): string
     {
         $link = $this->getLink($url);
-        $stateMachine = $this->workflow->get($link, Link::WORKFLOW_LINK_CRAWLING);
+        $stateMachine = $this->workflow->get($link);
 
         dump('Crawling Url: ' . $url. ', on: ' . date('H:i:s'));
 
