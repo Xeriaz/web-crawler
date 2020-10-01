@@ -1,0 +1,49 @@
+framework:
+    workflows:
+        link_crawling:
+            type: 'state_machine'
+            marking_store:
+                type: 'method'
+                property: 'state'
+            supports:
+                - App\Entity\Links
+            initial_marking: start
+            places:
+                - start
+                - pending
+                - success
+                - failed
+                - skipped
+                - redirected
+                - dead
+            transitions:
+                pending:
+                    from: start
+                    to: pending
+                skipping:
+                    from: [start, pending]
+                    to: skipped
+                success:
+                    from: [start, pending]
+                    to: success
+                redirecting:
+                    from: [start, pending]
+                    to: redirected
+                failing:
+                    from: [start, pending]
+                    to: failed
+                dying:
+                    from: [start, pending]
+                    to: dead
+                recrawl_success:
+                    from: [pending, success, failed]
+                    to: success
+                recrawl_redirecting:
+                    from: [pending, success, failed]
+                    to: redirected
+                recrawl_failing:
+                    from: [pending, success, failed]
+                    to: failed
+                recrawl_dying:
+                    from: [pending, success, failed]
+                    to: dead
