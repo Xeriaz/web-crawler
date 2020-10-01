@@ -63,13 +63,13 @@ class CrawlerService
         }
     }
 
+    /**
+     * @param string $html
+     * @param string $baseUrl
+     */
     private function saveCrawledLinks(string $html, string $baseUrl): void
     {
-        $state = $this->resolveState($baseUrl);
-        $linkExist = $this->entityManager
-            ->getRepository(Links::class)
-            ->findOneBy(['link' => $baseUrl]);
-        $transition = ($linkExist !== null) ? WorkflowTransitions::SKIPPING : WorkflowTransitions::PENDING;
+        $transition = $this->resolveTransition($baseUrl);
 
         $link = (new Link())
             ->setLink($baseUrl);
@@ -85,9 +85,7 @@ class CrawlerService
 
         foreach ($crawlerLinks as $crawlerLink) {
             $uri = $crawlerLink->getUri();
-            $state = $this->resolveState($uri);
-
-            $transition = ($linkExist !== null) ? WorkflowTransitions::SKIPPING : WorkflowTransitions::PENDING;
+            $transition = $this->resolveTransition($uri);
 
             $innerLink = (new Link())
                 ->setLink($uri)
@@ -106,12 +104,12 @@ class CrawlerService
      * @param string $baseUrl
      * @return string
      */
-    private function resolveState(string $baseUrl): string
+    private function resolveTransition(string $baseUrl): string
     {
         $linkExist = $this->entityManager
             ->getRepository(Link::class)
             ->findOneBy(['link' => $baseUrl]);
 
-        return ($linkExist !== null) ? Link::STATE_SKIPPED : Link::STATE_PENDING;
+        return ($linkExist !== null) ? WorkflowTransitions::SKIPPING : WorkflowTransitions::PENDING;
     }
 }

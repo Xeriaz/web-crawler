@@ -6,7 +6,7 @@ framework:
                 type: 'method'
                 property: 'state'
             supports:
-                - App\Entity\Links
+                - App\Entity\Link
             initial_marking: start
             places:
                 - start
