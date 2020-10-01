@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Constant\LinksStates;
-use App\Entity\Links;
+use App\Entity\Link;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
@@ -44,26 +43,26 @@ class ResponseRetrieverService
     {
         $link = $this->getLink($url);
 
-        $link->setState(LinksStates::SUCCESS);
+        $link->setState(Link::STATE_SUCCESS);
 
         dump('Crawling Url: ' . $url. ', on: ' . date('H:i:s'));
 
         try {
             $response = $this->client->request('GET', $url);
             $statusCode = $response->getStatusCode();
+            $link->setHttpStatus($statusCode);
 
             if ($statusCode !== Response::HTTP_OK) {
                 dump('Url: ' . $url . '; Status code is: ' . $statusCode);
 
-                $link->setState(LinksStates::FAILED);
+                $link->setState(Link::STATE_FAILED);
                 $link->setHttpStatus($statusCode);
 
                 return '';
             }
 
-            $link->setHttpStatus(Response::HTTP_OK);
         } catch (\Throwable $e) {
-            $link->setState(LinksStates::FAILED);
+            $link->setState(Link::STATE_FAILED);
 
             dump($e->getMessage() . PHP_EOL . $e->getTraceAsString());
             dump('Bad URL: ' . $url);
@@ -79,16 +78,16 @@ class ResponseRetrieverService
 
     /**
      * @param string $url
-     * @return Links
+     * @return Link
      */
-    private function getLink(string $url): Links
+    private function getLink(string $url): Link
     {
-        /** @var Links $links */
-        $links = $this->em->getRepository(Links::class)
+        /** @var Link $links */
+        $links = $this->em->getRepository(Link::class)
             ->findOneBy(['link' => $url]);
 
         if ($links === null) {
-            $links = new Links();
+            $links = new Link();
             $links->setLink($url);
         }
 

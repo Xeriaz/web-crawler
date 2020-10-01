@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Constant\LinksStates;
-use App\Entity\Links;
+use App\Entity\Link;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -30,7 +29,8 @@ class CrawlerService
         ResponseRetrieverService $retrieverService,
         EntityManagerInterface $entityManager,
         int $sleepSeconds
-    ) {
+    )
+    {
         $this->retrieverService = $retrieverService;
         $this->entityManager = $entityManager;
         $this->sleepSeconds = $sleepSeconds;
@@ -41,9 +41,9 @@ class CrawlerService
         $html = $this->retrieverService->getResponseContent($baseUrl);
         $this->saveCrawledLinks($html, $baseUrl);
 
-        /** @var Links $links */
+        /** @var Link $links */
         $links = $this->entityManager
-            ->getRepository(Links::class)
+            ->getRepository(Link::class)
             ->findPendingLinksByBaseUrl($baseUrl);
 
         foreach ($links as $link) {
@@ -55,13 +55,9 @@ class CrawlerService
 
     private function saveCrawledLinks(string $html, string $baseUrl): void
     {
-        $linkExist = $this->entityManager
-            ->getRepository(Links::class)
-            ->findOneBy(['link' => $baseUrl]);
+        $state = $this->resolveState($baseUrl);
 
-        $state = ($linkExist !== null) ? LinksStates::SKIPPED : LinksStates::PENDING;
-
-        $link = (new Links())
+        $link = (new Link())
             ->setLink($baseUrl)
             ->setState($state);
 
@@ -72,14 +68,9 @@ class CrawlerService
 
         foreach ($crawlerLinks as $crawlerLink) {
             $uri = $crawlerLink->getUri();
+            $state = $this->resolveState($uri);
 
-            $linkExist = $this->entityManager
-                ->getRepository(Links::class)
-                ->findOneBy(['link' => $uri]);
-
-            $state = ($linkExist !== null) ? LinksStates::SKIPPED : LinksStates::PENDING;
-
-            $innerLink = (new Links())
+            $innerLink = (new Link())
                 ->setLink($uri)
                 ->setState($state)
                 ->addParentLink($link);
@@ -88,5 +79,18 @@ class CrawlerService
         }
 
         $this->entityManager->flush();
+    }
+
+    /**
+     * @param string $baseUrl
+     * @return string
+     */
+    private function resolveState(string $baseUrl): string
+    {
+        $linkExist = $this->entityManager
+            ->getRepository(Link::class)
+            ->findOneBy(['link' => $baseUrl]);
+
+        return ($linkExist !== null) ? Link::STATE_SKIPPED : Link::STATE_PENDING;
     }
 }
