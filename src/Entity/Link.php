@@ -2,17 +2,23 @@
 
 namespace App\Entity;
 
-use App\Repository\LinksRepository;
+use App\Repository\LinkRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * @ORM\Entity(repositoryClass=LinksRepository::class)
+ * @ORM\Entity(repositoryClass=LinkRepository::class)
  */
-class Links
+class Link
 {
+    public const STATE_PENDING = 'pending';
+    public const STATE_SUCCESS = 'success';
+    public const STATE_FAILED = 'failed';
+    public const STATE_SKIPPED = 'skipped';
+    public const STATE_DEAD = 'dead';
+
     /**
      * @ORM\Id
      * @ORM\GeneratedValue
@@ -44,12 +50,12 @@ class Links
     private $createdOn;
 
     /**
-     * @ORM\ManyToMany(targetEntity=Links::class, inversedBy="innerLinks")
+     * @ORM\ManyToMany(targetEntity=Link::class, inversedBy="innerLinks")
      */
     private $parentLinks;
 
     /**
-     * @ORM\ManyToMany(targetEntity=Links::class, mappedBy="parentLinks")
+     * @ORM\ManyToMany(targetEntity=Link::class, mappedBy="parentLinks")
      */
     private $innerLinks;
 

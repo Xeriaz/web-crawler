@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Constant\LinksStates;
 use App\Constant\Workflows;
 use App\Constant\WorkflowTransitions;
-use App\Entity\Links;
+use App\Entity\Link;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Workflow\Registry;
@@ -39,7 +38,8 @@ class CrawlerService
         EntityManagerInterface $entityManager,
         Registry $workflows,
         int $sleepSeconds
-    ) {
+    )
+    {
         $this->retrieverService = $retrieverService;
         $this->entityManager = $entityManager;
         $this->workflows = $workflows;
@@ -51,9 +51,9 @@ class CrawlerService
         $html = $this->retrieverService->getResponseContent($baseUrl);
         $this->saveCrawledLinks($html, $baseUrl);
 
-        /** @var Links $links */
+        /** @var Link $links */
         $links = $this->entityManager
-            ->getRepository(Links::class)
+            ->getRepository(Link::class)
             ->findPendingLinksByBaseUrl($baseUrl);
 
         foreach ($links as $link) {
@@ -65,13 +65,13 @@ class CrawlerService
 
     private function saveCrawledLinks(string $html, string $baseUrl): void
     {
+        $state = $this->resolveState($baseUrl);
         $linkExist = $this->entityManager
             ->getRepository(Links::class)
             ->findOneBy(['link' => $baseUrl]);
-
         $transition = ($linkExist !== null) ? WorkflowTransitions::SKIPPING : WorkflowTransitions::PENDING;
 
-        $link = (new Links())
+        $link = (new Link())
             ->setLink($baseUrl);
 
         $stateMachine = $this->workflows->get($link, Workflows::LINK_CRAWLING);
@@ -85,14 +85,11 @@ class CrawlerService
 
         foreach ($crawlerLinks as $crawlerLink) {
             $uri = $crawlerLink->getUri();
-
-            $linkExist = $this->entityManager
-                ->getRepository(Links::class)
-                ->findOneBy(['link' => $uri]);
+            $state = $this->resolveState($uri);
 
             $transition = ($linkExist !== null) ? WorkflowTransitions::SKIPPING : WorkflowTransitions::PENDING;
 
-            $innerLink = (new Links())
+            $innerLink = (new Link())
                 ->setLink($uri)
                 ->addParentLink($link);
 
@@ -103,5 +100,18 @@ class CrawlerService
         }
 
         $this->entityManager->flush();
+    }
+
+    /**
+     * @param string $baseUrl
+     * @return string
+     */
+    private function resolveState(string $baseUrl): string
+    {
+        $linkExist = $this->entityManager
+            ->getRepository(Link::class)
+            ->findOneBy(['link' => $baseUrl]);
+
+        return ($linkExist !== null) ? Link::STATE_SKIPPED : Link::STATE_PENDING;
     }
 }

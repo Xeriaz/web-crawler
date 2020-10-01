@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Constant\LinksStates;
 use App\Constant\Workflows;
 use App\Constant\WorkflowTransitions;
-use App\Entity\Links;
+use App\Entity\Link;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Workflow\Registry;
@@ -59,6 +58,7 @@ class ResponseRetrieverService
         try {
             $response = $this->client->request('GET', $url);
             $statusCode = $response->getStatusCode();
+            $link->setHttpStatus($statusCode);
 
             if ($statusCode !== Response::HTTP_OK) {
                 dump('Url: ' . $url . '; Status code is: ' . $statusCode);
@@ -69,7 +69,6 @@ class ResponseRetrieverService
                 return '';
             }
 
-            $link->setHttpStatus(Response::HTTP_OK);
         } catch (\Throwable $e) {
             dump($e->getMessage() . PHP_EOL . $e->getTraceAsString());
             dump('Bad URL: ' . $url);
@@ -93,16 +92,16 @@ class ResponseRetrieverService
 
     /**
      * @param string $url
-     * @return Links
+     * @return Link
      */
-    private function getLink(string $url): Links
+    private function getLink(string $url): Link
     {
-        /** @var Links $links */
-        $links = $this->em->getRepository(Links::class)
+        /** @var Link $links */
+        $links = $this->em->getRepository(Link::class)
             ->findOneBy(['link' => $url]);
 
         if ($links === null) {
-            $links = new Links();
+            $links = new Link();
             $links->setLink($url);
         }
 
