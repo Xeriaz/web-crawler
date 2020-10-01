@@ -19,6 +19,16 @@ class Link
     public const STATE_SKIPPED = 'skipped';
     public const STATE_DEAD = 'dead';
 
+    public const TRANSITION_SKIPPING = 'skipping';
+    public const TRANSITION_SUCCESS = 'success';
+    public const TRANSITION_PENDING = 'pending';
+    public const TRANSITION_REDIRECTING = 'redirecting';
+    public const TRANSITION_FAILING = 'failing';
+    public const TRANSITION_DYING = 'dying';
+
+    public const WORKFLOW_LINK_CRAWLING = 'link_crawling';
+
+
     /**
      * @ORM\Id
      * @ORM\GeneratedValue

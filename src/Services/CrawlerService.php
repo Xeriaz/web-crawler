@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Constant\Workflows;
-use App\Constant\WorkflowTransitions;
 use App\Entity\Link;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\DomCrawler\Crawler;
@@ -38,8 +36,7 @@ class CrawlerService
         EntityManagerInterface $entityManager,
         Registry $workflows,
         int $sleepSeconds
-    )
-    {
+    ) {
         $this->retrieverService = $retrieverService;
         $this->entityManager = $entityManager;
         $this->workflows = $workflows;
@@ -74,7 +71,7 @@ class CrawlerService
         $link = (new Link())
             ->setLink($baseUrl);
 
-        $stateMachine = $this->workflows->get($link, Workflows::LINK_CRAWLING);
+        $stateMachine = $this->workflows->get($link, Link::WORKFLOW_LINK_CRAWLING);
 
         $stateMachine->apply($link, $transition);
 
@@ -91,7 +88,7 @@ class CrawlerService
                 ->setLink($uri)
                 ->addParentLink($link);
 
-            $stateMachine = $this->workflows->get($innerLink, Workflows::LINK_CRAWLING);
+            $stateMachine = $this->workflows->get($innerLink, Link::WORKFLOW_LINK_CRAWLING);
             $stateMachine->apply($innerLink, $transition);
 
             $this->entityManager->persist($innerLink);
@@ -110,6 +107,6 @@ class CrawlerService
             ->getRepository(Link::class)
             ->findOneBy(['link' => $baseUrl]);
 
-        return ($linkExist !== null) ? WorkflowTransitions::SKIPPING : WorkflowTransitions::PENDING;
+        return ($linkExist !== null) ? Link::TRANSITION_SKIPPING : Link::TRANSITION_PENDING;
     }
 }

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Constant\Workflows;
-use App\Constant\WorkflowTransitions;
 use App\Entity\Link;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -51,7 +49,7 @@ class ResponseRetrieverService
     public function getResponseContent(string $url): string
     {
         $link = $this->getLink($url);
-        $stateMachine = $this->workflow->get($link, Workflows::LINK_CRAWLING);
+        $stateMachine = $this->workflow->get($link, Link::WORKFLOW_LINK_CRAWLING);
 
         dump('Crawling Url: ' . $url. ', on: ' . date('H:i:s'));
 
@@ -63,7 +61,7 @@ class ResponseRetrieverService
             if ($statusCode !== Response::HTTP_OK) {
                 dump('Url: ' . $url . '; Status code is: ' . $statusCode);
 
-                $stateMachine->apply($link, WorkflowTransitions::FAILING);
+                $stateMachine->apply($link, Link::TRANSITION_FAILING);
                 $link->setHttpStatus($statusCode);
 
                 return '';
@@ -78,7 +76,7 @@ class ResponseRetrieverService
             if (isset($statusCode)) {
                 $transition = $this->resolveTransitionByStatusCode($statusCode);
             } else {
-                $transition = WorkflowTransitions::FAILING;
+                $transition = Link::TRANSITION_FAILING;
             }
 
             $stateMachine->apply($link, $transition);
@@ -111,21 +109,21 @@ class ResponseRetrieverService
     private function resolveTransitionByStatusCode(int $statusCode): string
     {
         if ($statusCode >= 500) {
-            return WorkflowTransitions::DYING;
+            return Link::TRANSITION_DYING;
         }
 
         if ($statusCode >= 400) {
-            return WorkflowTransitions::FAILING;
+            return Link::TRANSITION_FAILING;
         }
 
         if ($statusCode >= 300) {
-            return WorkflowTransitions::REDIRECTING;
+            return Link::TRANSITION_REDIRECTING;
         }
 
         if ($statusCode >= 200) {
-            return WorkflowTransitions::SUCCESS;
+            return Link::TRANSITION_SUCCESS;
         }
 
-        return WorkflowTransitions::FAILING;
+        return Link::TRANSITION_FAILING;
     }
 }
