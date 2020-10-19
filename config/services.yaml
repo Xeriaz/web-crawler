@@ -14,6 +14,14 @@ services:
             - '../src/Kernel.php'
             - '../src/Tests/'
 
+    App\EventListener\CrawlerListener:
+        tags:
+            - { name: kernel.event_listener, event: app.crawler.crawl, method: 'onCrawlEvent' }
+
+    App\Crawler\ResponseParser:
+        arguments:
+            $eventDispatcher: '@event_dispatcher'
+
     App\Services\CrawlerService:
         arguments:
             - '@App\Services\ResponseRetrieverService'
