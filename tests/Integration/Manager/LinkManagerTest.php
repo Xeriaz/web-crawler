@@ -1,31 +1,13 @@
 <?php
 
-/**
- * @copyright C UAB NFQ Technologies
- *
- * This Software is the property of NFQ Technologies
- * and is protected by copyright law – it is NOT Freeware.
- *
- * Any unauthorized use of this software without a valid license key
- * is a violation of the license agreement and will be prosecuted by
- * civil and criminal law.
- *
- * Contact UAB NFQ Technologies:
- * E-mail: info@nfq.lt
- * http://www.nfq.lt
- */
-
 declare(strict_types=1);
 
-namespace App\Tests\Manager;
+namespace App\Tests\Integration\Manager;
 
 use App\Entity\Link;
 use App\Manager\LinkManager;
-use App\Repository\LinkRepository;
-use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpClient\Response\MockResponse;
 
 class LinkManagerTest extends WebTestCase
