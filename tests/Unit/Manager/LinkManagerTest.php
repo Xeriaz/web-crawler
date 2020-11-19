@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Manager;
 
 use App\Entity\Link;
 use App\Manager\LinkManager;
+use App\Repository\LinkRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -18,10 +19,61 @@ class LinkManagerTest extends WebTestCase
 {
     private const LINK_URL = 'https://nfq.test';
 
-    private LinkManager $linkManager;
-
-    protected function setUp()
+    public function testFetchOrCreateLinkWithExistingLink()
     {
+        $linkRepository = $this->createMock(LinkRepository::class);
+        $linkRepository->expects(self::once())
+            ->method('findOneBy')
+            ->with(['link' => self::LINK_URL])
+            ->willReturn(
+                $this->getLink()
+            );
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->expects(self::once())
+            ->method('getRepository')
+            ->with(Link::class)
+            ->willReturn(
+                $linkRepository
+            );
+
+        $linkManager = new LinkManager($em, $this->createMock(Registry::class));
+        $linkManager->fetchOrCreateLink(self::LINK_URL, null);
+    }
+
+    public function testFetchOrCreateLinkWithoutLink()
+    {
+        $linkRepository = $this->createMock(LinkRepository::class);
+        $linkRepository->expects(self::once())
+            ->method('findOneBy')
+            ->with(['link' => self::LINK_URL])
+            ->willReturn(
+                null
+            );
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        $em->expects(self::once())
+            ->method('getRepository')
+            ->with(Link::class)
+            ->willReturn(
+                $linkRepository
+            );
+
+        $linkManager = new LinkManager($em, $this->createMock(Registry::class));
+        $linkManager->fetchOrCreateLink(self::LINK_URL, null);
+    }
+
+    public function testCreateLink()
+    {
+        $linkManager = new LinkManager(
+            $this->createMock(EntityManagerInterface::class),
+            $this->createMock(Registry::class)
+        );
+
+        $link = $linkManager->createLink(self::LINK_URL, null);
+        $child = $linkManager->createLink(self::LINK_URL, $link);
+
+        self::assertEquals($child->getParentLinks()->first(), $link);
     }
 
     /**
@@ -29,22 +81,25 @@ class LinkManagerTest extends WebTestCase
      *
      * @param Link $link
      * @param ResponseInterface $response
-     * @param string $expected
+     * @param string $expectedTransition
      */
-    public function testUpdateLinkWithResponse(Link $link, ResponseInterface $response, string $expected): void
-    {
+    public function testUpdateLinkWithResponse(
+        Link $link,
+        ResponseInterface $response,
+        string $expectedTransition
+    ): void {
         $em = $this->getMockedEntityManager();
 
         $workflow = $this->createMock(Workflow::class);
-        $workflow->expects($this->once())
+        $workflow->expects(self::once())
             ->method('apply')
-            ->with($link, $expected);
+            ->with($link, $expectedTransition);
 
         $registry = $this->getMockedRegistry($workflow, $link);
 
-        $this->linkManager = new LinkManager($em, $registry);
+        $linkManager = new LinkManager($em, $registry);
 
-        $this->linkManager->updateLinkWithResponse($link, $response);
+        $linkManager->updateLinkWithResponse($link, $response);
     }
 
     /**
@@ -57,7 +112,8 @@ class LinkManagerTest extends WebTestCase
         };
 
         return [
-//            [$this->getLink(), new MockResponse('', ['http_code' => '100']), ],
+            $getData(null, Link::TRANSITION_FAILING),
+            $getData('100', Link::TRANSITION_FAILING),
             $getData('200', Link::TRANSITION_SUCCESS),
             $getData('300', Link::TRANSITION_REDIRECTING),
             $getData('400', Link::TRANSITION_FAILING),
@@ -97,7 +153,6 @@ class LinkManagerTest extends WebTestCase
      */
     private function getMockedRegistry(MockObject $workflow, Link $link)
     {
-
         $registry = $this->createMock(Registry::class);
 
         $registry->expects($this->any())
