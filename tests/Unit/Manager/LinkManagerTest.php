@@ -22,21 +22,28 @@ class LinkManagerTest extends WebTestCase
 
     protected function setUp()
     {
-        $em = $this->getMockedEntityManager();
-
-        $workflow = $this->createMock(Workflow::class);
-        $registry = $this->getMockedRegistry($workflow);
-
-        $this->linkManager = new LinkManager($em, $registry);
     }
 
     /**
      * @dataProvider getData
+     *
      * @param Link $link
      * @param ResponseInterface $response
+     * @param string $expected
      */
-    public function testUpdateLinkWithResponse(Link $link, ResponseInterface $response): void
+    public function testUpdateLinkWithResponse(Link $link, ResponseInterface $response, string $expected): void
     {
+        $em = $this->getMockedEntityManager();
+
+        $workflow = $this->createMock(Workflow::class);
+        $workflow->expects($this->once())
+            ->method('apply')
+            ->with($link, $expected);
+
+        $registry = $this->getMockedRegistry($workflow, $link);
+
+        $this->linkManager = new LinkManager($em, $registry);
+
         $this->linkManager->updateLinkWithResponse($link, $response);
     }
 
@@ -45,12 +52,16 @@ class LinkManagerTest extends WebTestCase
      */
     public function getData(): array
     {
+        $getData = function($httpCode, $expectedTransition) {
+            return [$this->getLink(), new MockResponse('', ['http_code' => $httpCode]), $expectedTransition];
+        };
+
         return [
-            [$this->getLink(), new MockResponse('', ['http_code' => '100'])],
-//            [$this->getLink(), new MockResponse('', ['http_code' => '200'])],
-//            [$this->getLink(), new MockResponse('', ['http_code' => '300'])],
-//            [$this->getLink(), new MockResponse('', ['http_code' => '400'])],
-//            [$this->getLink(), new MockResponse('', ['http_code' => '500'])],
+//            [$this->getLink(), new MockResponse('', ['http_code' => '100']), ],
+            $getData('200', Link::TRANSITION_SUCCESS),
+            $getData('300', Link::TRANSITION_REDIRECTING),
+            $getData('400', Link::TRANSITION_FAILING),
+            $getData('500', Link::TRANSITION_DYING),
         ];
     }
 
@@ -71,10 +82,10 @@ class LinkManagerTest extends WebTestCase
     {
         $em = $this->createMock(EntityManagerInterface::class);
 
-        $em->expects($this->any())
+        $em->expects($this->once())
             ->method('persist');
 
-        $em->expects($this->any())
+        $em->expects($this->once())
             ->method('flush');
 
         return $em;
@@ -84,12 +95,14 @@ class LinkManagerTest extends WebTestCase
      * @param MockObject $workflow
      * @return MockObject|Registry
      */
-    private function getMockedRegistry(MockObject $workflow)
+    private function getMockedRegistry(MockObject $workflow, Link $link)
     {
+
         $registry = $this->createMock(Registry::class);
 
         $registry->expects($this->any())
             ->method('get')
+            ->with($link)
             ->willReturn($workflow);
 
         return $registry;
