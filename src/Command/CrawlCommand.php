@@ -44,9 +44,9 @@ class CrawlCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $io->note(sprintf('Crawling started on: %s', $url));
 
-        $this->lock('crawler-service');
+        $lockSuccessful = $this->lock('crawler-service');
 
-        if ($this->lock === null) {
+        if ($lockSuccessful === false) {
             $io->warning('Crawler service is currently locked');
 
             return self::FAILURE;
@@ -54,6 +54,7 @@ class CrawlCommand extends Command
 
         try {
             $this->crawler->crawl($url);
+
             $io->success('Crawling over!');
         } catch (\Throwable $e) {
             dump($e->getMessage() . PHP_EOL . $e->getTraceAsString());
