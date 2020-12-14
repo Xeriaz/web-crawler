@@ -47,7 +47,7 @@ class Link
     /**
      * @ORM\Column(type="string", length=255)
      */
-    private $state;
+    private $state = self::STATE_PENDING;
 
     /**
      * @ORM\Column(type="integer")

@@ -46,6 +46,7 @@ class CrawlerService
     public function crawl(string $baseUrl): void
     {
         $html = $this->retrieverService->getResponseContent($baseUrl);
+
         $this->saveCrawledLinks($html, $baseUrl);
 
         /** @var Link $links */
@@ -87,19 +88,6 @@ class CrawlerService
     }
 
     /**
-     * @param string $url
-     * @return string
-     */
-    private function resolveTransition(string $url): string
-    {
-        $linkExist = $this->entityManager
-            ->getRepository(Link::class)
-            ->findOneBy(['link' => $url]);
-
-        return ($linkExist !== null) ? Link::TRANSITION_SKIPPING : Link::TRANSITION_PENDING;
-    }
-
-    /**
      * @param Link $link
      * @param string $url
      * @return void
@@ -110,5 +98,18 @@ class CrawlerService
         $stateMachine->apply($link, $this->resolveTransition($url));
 
         $this->entityManager->persist($link);
+    }
+
+    /**
+     * @param string $url
+     * @return string
+     */
+    private function resolveTransition(string $url): string
+    {
+        $linkExist = $this->entityManager
+            ->getRepository(Link::class)
+            ->findOneBy(['link' => $url]);
+
+        return ($linkExist !== null) ? Link::TRANSITION_SKIPPING : Link::TRANSITION_PENDING;
     }
 }

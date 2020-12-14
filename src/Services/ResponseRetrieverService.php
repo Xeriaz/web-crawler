@@ -51,16 +51,12 @@ class ResponseRetrieverService
         $link = $this->getLink($url);
         $stateMachine = $this->workflow->get($link);
 
-        dump('Crawling Url: ' . $url. ', on: ' . date('H:i:s'));
-
         try {
             $response = $this->client->request('GET', $url);
             $statusCode = $response->getStatusCode();
             $link->setHttpStatus($statusCode);
 
             if ($statusCode !== Response::HTTP_OK) {
-                dump('Url: ' . $url . '; Status code is: ' . $statusCode);
-
                 $stateMachine->apply($link, Link::TRANSITION_FAILING);
                 $link->setHttpStatus($statusCode);
 
@@ -68,9 +64,6 @@ class ResponseRetrieverService
             }
 
         } catch (\Throwable $e) {
-            dump($e->getMessage() . PHP_EOL . $e->getTraceAsString());
-            dump('Bad URL: ' . $url);
-
             return '';
         } finally {
             if (isset($statusCode)) {
