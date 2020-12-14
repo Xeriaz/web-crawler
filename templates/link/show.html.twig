@@ -1,0 +1,38 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Link{% endblock %}
+
+{% block body %}
+    <h1>Link</h1>
+
+    <table class="table">
+        <tbody>
+            <tr>
+                <th>Id</th>
+                <td>{{ link.id }}</td>
+            </tr>
+            <tr>
+                <th>Link</th>
+                <td>{{ link.link }}</td>
+            </tr>
+            <tr>
+                <th>State</th>
+                <td>{{ link.state }}</td>
+            </tr>
+            <tr>
+                <th>TimesVisited</th>
+                <td>{{ link.timesVisited }}</td>
+            </tr>
+            <tr>
+                <th>CreatedOn</th>
+                <td>{{ link.createdOn ? link.createdOn|date('Y-m-d H:i:s') : '' }}</td>
+            </tr>
+            <tr>
+                <th>HttpStatus</th>
+                <td>{{ link.httpStatus }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <a href="{{ path('link_index') }}">back to list</a>
+{% endblock %}

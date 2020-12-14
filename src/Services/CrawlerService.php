@@ -45,6 +45,7 @@ class CrawlerService
 
     public function crawl(string $baseUrl): void
     {
+        dump($baseUrl);
         $html = $this->retrieverService->getResponseContent($baseUrl);
 
         $this->saveCrawledLinks($html, $baseUrl);
@@ -55,6 +56,7 @@ class CrawlerService
             ->findPendingLinksByBaseUrl($baseUrl);
 
         foreach ($links as $link) {
+            dump($link);
             sleep($this->sleepSeconds);
 
             $this->crawl($link->getLink());
