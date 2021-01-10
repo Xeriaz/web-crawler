@@ -42,17 +42,20 @@ class ResponseParser
     protected function parseContent(Link $link, string $content): void
     {
         $linksInContent = $this->extractLinks($content, $link->getLink());
-
         foreach ($linksInContent as $linkInContent) {
             sleep($this->sleepInSeconds);
 
             $linkUrl = $linkInContent->getUri();
+
             if (in_array($linkUrl, self::$crawledUrls, true) === true) {
                 continue;
             }
 
+            self::$crawledUrls[] = $linkUrl;
+
             $this->eventDispatcher->dispatch(
-                (new CrawlEvent($linkUrl, $link))
+                (new CrawlEvent($linkUrl, $link)),
+                'app.crawler.crawl'
             );
         }
     }
