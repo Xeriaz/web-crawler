@@ -4,6 +4,7 @@ namespace App\Crawler;
 
 use App\Entity\Link;
 use App\Manager\LinkManager;
+use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class Crawler
@@ -27,6 +28,10 @@ class Crawler
     public function crawl(string $url, ?Link $parentLink = null): void
     {
         $link = $this->linkManager->fetchOrCreateLink($url, $parentLink);
+
+        if ($link === null) {
+            return;
+        }
 
         $response = $this->httpClient->request('GET', $link->getLink());
 

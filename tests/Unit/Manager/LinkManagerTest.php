@@ -19,7 +19,7 @@ class LinkManagerTest extends WebTestCase
 {
     private const LINK_URL = 'https://nfq.test';
 
-    public function testFetchOrCreateLinkWithExistingLink()
+    public function testFetchOrCreateLinkWithExistingLink(): void
     {
         $linkRepository = $this->createMock(LinkRepository::class);
         $linkRepository->expects(self::once())
@@ -41,7 +41,7 @@ class LinkManagerTest extends WebTestCase
         $linkManager->fetchOrCreateLink(self::LINK_URL, null);
     }
 
-    public function testFetchOrCreateLinkWithoutLink()
+    public function testFetchOrCreateLinkWithoutLink(): void
     {
         $linkRepository = $this->createMock(LinkRepository::class);
         $linkRepository->expects(self::once())
@@ -63,7 +63,7 @@ class LinkManagerTest extends WebTestCase
         $linkManager->fetchOrCreateLink(self::LINK_URL, null);
     }
 
-    public function testCreateLink()
+    public function testCreateLink(): void
     {
         $linkManager = new LinkManager(
             $this->createMock(EntityManagerInterface::class),
@@ -102,6 +102,36 @@ class LinkManagerTest extends WebTestCase
         $linkManager->updateLinkWithResponse($link, $response);
     }
 
+    public function testIsValidUrl(): void
+    {
+        $linkManager = new LinkManager(
+            $this->createMock(EntityManagerInterface::class),
+            $this->createMock(Registry::class)
+        );
+
+        self::assertFalse($linkManager->isValidUrl('mailto:info@nfq.lt'));
+    }
+
+    public function testNormalizeUrl(): void
+    {
+        $linkManager = new LinkManager(
+            $this->createMock(EntityManagerInterface::class),
+            $this->createMock(Registry::class)
+        );
+
+        $urls = [
+            self::LINK_URL . '?test=true',
+            self::LINK_URL . '?test=true#anchor',
+            self::LINK_URL . '#',
+        ];
+
+        foreach ($urls as $url) {
+            $normalizedUrl = $linkManager->normalizeUrl($url);
+
+            self::assertEquals(self::LINK_URL, $normalizedUrl);
+        }
+    }
+
     /**
      * @return array
      */
@@ -121,11 +151,11 @@ class LinkManagerTest extends WebTestCase
         ];
     }
 
-    private function getLink()
+    private function getLink(string $linkUrl = self::LINK_URL): Link
     {
         $link = new Link();
 
-        $link->setLink(self::LINK_URL);
+        $link->setLink($linkUrl);
         $link->setState(Link::STATE_PENDING);
 
         return $link;
@@ -149,6 +179,7 @@ class LinkManagerTest extends WebTestCase
 
     /**
      * @param MockObject $workflow
+     * @param Link $link
      * @return MockObject|Registry
      */
     private function getMockedRegistry(MockObject $workflow, Link $link)

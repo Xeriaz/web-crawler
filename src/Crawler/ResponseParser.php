@@ -43,7 +43,7 @@ class ResponseParser
     {
         $linksInContent = $this->extractLinks($content, $link->getLink());
         foreach ($linksInContent as $linkInContent) {
-            sleep($this->sleepInSeconds);
+//            sleep($this->sleepInSeconds);
 
             $linkUrl = $linkInContent->getUri();
 
@@ -61,9 +61,11 @@ class ResponseParser
     }
 
     /**
+     * @param string $content
+     * @param string $url
      * @return \Symfony\Component\DomCrawler\Link[]
      */
-    protected function extractLinks(string $content, string $url)
+    protected function extractLinks(string $content, string $url): array
     {
         return (new DomCrawler($content, $url))
             ->filter('a')
