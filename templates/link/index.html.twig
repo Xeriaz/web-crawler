@@ -28,7 +28,7 @@
                 <td>{{ link.createdOn ? link.createdOn|date('Y-m-d H:i:s') : '' }}</td>
                 <td>{{ link.httpStatus }}</td>
                 <td>
-                    <a href="{{ path('link_show', {'id': link.id}) }}">show</a>
+                    <a class="btn btn-info" href="{{ path('link_show', {'id': link.id}) }}">Show</a>
                 </td>
             </tr>
         {% else %}
