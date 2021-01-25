@@ -8,7 +8,7 @@
 {% block body %}
     <h1>Link index</h1>
 
-    <table class="table">
+    <table class="table table-striped">
         <thead>
             <tr>
                 <th>Id</th>
@@ -39,5 +39,5 @@
         </tbody>
     </table>
 
-    <a href="{{ path('link_new') }}">Create new</a>
+    <a class="btn btn-primary" href="{{ path('link_new') }}">Create new</a>
 {% endblock %}
