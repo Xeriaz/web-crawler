@@ -3,11 +3,9 @@
 namespace App\Manager;
 
 use App\Entity\Link;
+use App\Utility\UrlNormalizerInterface;
+use App\Utility\UrlValidatorInterface;
 use Doctrine\ORM\EntityManagerInterface;
-use phpDocumentor\Reflection\Types\This;
-use Psr\Log\LoggerInterface;
-use Symfony\Component\Validator\Constraints\Url;
-use Symfony\Component\Validator\Constraints\UrlValidator;
 use Symfony\Component\Workflow\Registry;
 use Symfony\Contracts\HttpClient\ResponseInterface;
 use Throwable;
@@ -18,17 +16,25 @@ class LinkManager
 
     private Registry $registry;
 
+    private UrlNormalizerInterface $normalizer;
+
+    private UrlValidatorInterface $validator;
+
     public function __construct(
         EntityManagerInterface $em,
-        Registry $registry
+        Registry $registry,
+        UrlNormalizerInterface $normalizer,
+        UrlValidatorInterface $validator
     ) {
         $this->em = $em;
         $this->registry = $registry;
+        $this->normalizer = $normalizer;
+        $this->validator = $validator;
     }
 
     public function fetchOrCreateLink(string $url, ?Link $parentLink): ?Link
     {
-        $url = $this->normalizeUrl($url);
+        $url = $this->normalizer->normalize($url);
 
         $existingLink = $this->em->getRepository(Link::class)->findOneBy(['link' => $url]);
 
@@ -36,12 +42,11 @@ class LinkManager
             return $existingLink;
         }
 
-        if ($this->isValidUrl($url) === false) {
+        if ($this->validator->isValid($url) === false) {
             dump('Url is not valid: ' . $url);
 
             return null;
         }
-
 
         return $this->createLink($url, $parentLink);
     }
@@ -69,27 +74,6 @@ class LinkManager
 
         $this->em->persist($link);
         $this->em->flush();
-    }
-
-    public function isValidUrl(string $url): bool
-    {
-        $needles = ['http://', 'https://'];
-
-        foreach ($needles as $needle) {
-            if (strpos($url, $needle) !== false) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public function normalizeUrl(string $url): string
-    {
-        $url = explode('?', $url)[0];
-        $url = explode('#', $url)[0];
-
-        return $url;
     }
 
     protected function resolveStatusCode(ResponseInterface $response): ?int

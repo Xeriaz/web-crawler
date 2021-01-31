@@ -102,36 +102,6 @@ class LinkManagerTest extends WebTestCase
         $linkManager->updateLinkWithResponse($link, $response);
     }
 
-    public function testIsValidUrl(): void
-    {
-        $linkManager = new LinkManager(
-            $this->createMock(EntityManagerInterface::class),
-            $this->createMock(Registry::class)
-        );
-
-        self::assertFalse($linkManager->isValidUrl('mailto:info@nfq.lt'));
-    }
-
-    public function testNormalizeUrl(): void
-    {
-        $linkManager = new LinkManager(
-            $this->createMock(EntityManagerInterface::class),
-            $this->createMock(Registry::class)
-        );
-
-        $urls = [
-            self::LINK_URL . '?test=true',
-            self::LINK_URL . '?test=true#anchor',
-            self::LINK_URL . '#',
-        ];
-
-        foreach ($urls as $url) {
-            $normalizedUrl = $linkManager->normalizeUrl($url);
-
-            self::assertEquals(self::LINK_URL, $normalizedUrl);
-        }
-    }
-
     /**
      * @return array
      */
