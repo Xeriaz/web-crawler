@@ -3,24 +3,28 @@
 namespace App\Utility;
 
 use Symfony\Component\Validator\Constraints\Url;
-use Symfony\Component\Validator\Context\ExecutionContextInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class UrlValidator implements UrlValidatorInterface
 {
-    private ExecutionContextInterface $context;
+    /**
+     * @var ValidatorInterface
+     */
+    private ValidatorInterface $validator;
 
-    public function __construct(ExecutionContextInterface $context)
+    public function __construct(ValidatorInterface $validator)
     {
-        $this->context = $context;
+        $this->validator = $validator;
     }
 
     public function isValid(string $url): bool
     {
-        $validator = new \Symfony\Component\Validator\Constraints\UrlValidator();
-        $validator->initialize($this->context);
+        $errors = $this->validator->validate($url, new Url());
 
+        if ($errors->count() > 0) {
+            return false;
+        }
 
-        dd($validator->validate($url, new Url()));
-        return false;
+        return true;
     }
 }
